@@ -145,6 +145,24 @@ PYTHONPATH=src python -m slm_tokenizer.evaluate \
 artifacts/evaluations/slm-10m/torch/best.json
 ```
 
+## Generate Samples
+
+loss만으로는 한국어 생성 품질을 체감하기 어려우므로, 체크포인트와 SentencePiece
+토크나이저를 연결해 prompt 기반 샘플을 생성할 수 있습니다.
+
+```bash
+PYTHONPATH=src python -m slm_tokenizer.generate \
+  --checkpoint artifacts/checkpoints/slm-10m/torch/best.pt \
+  --prompt "오늘의 인공지능 연구는" \
+  --max-new-tokens 120 \
+  --temperature 0.8 \
+  --top-k 50
+```
+
+`--checkpoint`를 `best.pt`와 `last.pt`로 바꿔 같은 prompt를 넣으면 loss 비교와 별개로
+두 체크포인트의 한국어 생성 느낌을 빠르게 비교할 수 있습니다. `--prompt`를 생략하면
+터미널에서 직접 입력받습니다.
+
 ## Notes
 
 - Korpora 패키지의 라이선스와 각 말뭉치의 라이선스는 다를 수 있습니다. 모델을

@@ -10,9 +10,13 @@ from typing import Any
 import numpy as np
 import torch
 
-from slm_tokenizer.model import GPTConfig, GPTLanguageModel
 from slm_tokenizer.pretrain_config import TrainConfig
 from slm_tokenizer.pretrain_data import load_token_stream, split_tokens
+from slm_tokenizer.torch_runtime import (
+    load_checkpoint,
+    load_model_from_checkpoint,
+    resolve_device,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,21 +49,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_device(requested: str) -> torch.device:
-    if requested == "auto":
-        if torch.cuda.is_available():
-            return torch.device("cuda")
-        if torch.backends.mps.is_available():
-            return torch.device("mps")
-        return torch.device("cpu")
-    device = torch.device(requested)
-    if device.type == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError("CUDA was requested but is not available.")
-    if device.type == "mps" and not torch.backends.mps.is_available():
-        raise RuntimeError("MPS was requested but is not available.")
-    return device
-
-
 def get_batch(
     data: np.ndarray,
     batch_size: int,
@@ -74,7 +63,7 @@ def get_batch(
 
 @torch.no_grad()
 def estimate_loss(
-    model: GPTLanguageModel,
+    model: torch.nn.Module,
     train_data: np.ndarray,
     val_data: np.ndarray,
     batch_size: int,
@@ -95,20 +84,13 @@ def estimate_loss(
     return output
 
 
-def load_checkpoint(path: Path, device: torch.device) -> dict[str, Any]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing checkpoint: {path}")
-    return torch.load(path, map_location=device)
-
-
 def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     device = resolve_device(args.device)
     checkpoint = load_checkpoint(args.checkpoint, device)
-    if checkpoint.get("backend") != "torch":
-        raise ValueError("This evaluator currently supports PyTorch checkpoints only.")
 
     train_config = checkpoint["train_config"]
-    model_config = GPTConfig(**checkpoint["model_config"])
+    model = load_model_from_checkpoint(checkpoint, device)
+    model_config = model.config
     dataset_dir = args.dataset_dir or Path(train_config["dataset_dir"])
     batch_size = args.batch_size or int(train_config["batch_size"])
     val_fraction = args.val_fraction or float(train_config["val_fraction"])
@@ -120,8 +102,6 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     tokens, dataset_stats = load_token_stream(dataset_dir)
     train_data, val_data = split_tokens(tokens, val_fraction, model_config.block_size)
 
-    model = GPTLanguageModel(model_config).to(device)
-    model.load_state_dict(checkpoint["model"])
     losses = estimate_loss(model, train_data, val_data, batch_size, args.eval_iters, device)
     metrics = {
         "checkpoint": str(args.checkpoint),
