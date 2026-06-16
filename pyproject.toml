@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slm-tokenizer"
+version = "0.1.0"
+description = "Korean tokenizer training example with Korpora and SentencePiece."
+requires-python = ">=3.10"
+dependencies = [
+  "Korpora>=0.2.0",
+  "numpy>=1.26.0",
+  "sentencepiece>=0.2.0",
+  "torch>=2.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.5.0",
+]
+mlx = [
+  "mlx>=0.31.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

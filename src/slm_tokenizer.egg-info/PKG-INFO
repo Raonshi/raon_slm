@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: slm-tokenizer
+Version: 0.1.0
+Summary: Korean tokenizer training example with Korpora and SentencePiece.
+Requires-Python: >=3.10
+Requires-Dist: Korpora>=0.2.0
+Requires-Dist: numpy>=1.26.0
+Requires-Dist: sentencepiece>=0.2.0
+Requires-Dist: torch>=2.3.0
+Provides-Extra: dev
+Requires-Dist: ruff>=0.5.0; extra == "dev"
